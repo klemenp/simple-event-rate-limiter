@@ -111,6 +111,10 @@ public class BasicLimiter implements Limiter {
         {
             return;
         }
+        else if (nextAllowedTimestamp.longValue()>logTimestamp)
+        {
+            throw new EventLimitException("Limit reached for event key " + eventKey + ". Next event allowed on " + nextAllowedTimestamp.longValue());
+        }
     }
 
     private boolean isEventRegistered(String eventKey)
