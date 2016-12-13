@@ -22,7 +22,7 @@ import simpleratelimiter.exception.NoEventRegisteredException;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Created by klemen on 13.12.2016.
+ * Created by Klemen Polanec on 13.12.2016.
  */
 public interface Limiter {
 
@@ -56,5 +56,5 @@ public interface Limiter {
      * @param unit
      * @throws EventLimitException
      */
-    void registerEvent(String eventKey, int limit, int interval, TimeUnit unit) throws EventRegisteredException;
+    void registerEvent(String eventKey, int limit, long interval, TimeUnit unit) throws EventRegisteredException;
 }

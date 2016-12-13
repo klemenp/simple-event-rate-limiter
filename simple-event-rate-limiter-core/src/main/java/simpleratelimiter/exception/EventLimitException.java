@@ -16,7 +16,14 @@
 package simpleratelimiter.exception;
 
 /**
- * Created by klemen on 13.12.2016.
+ * Created by Klemen Polanec on 13.12.2016.
  */
 public class EventLimitException extends Exception {
+    public EventLimitException(String message) {
+        super(message);
+    }
+
+    public EventLimitException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

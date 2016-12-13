@@ -16,7 +16,14 @@
 package simpleratelimiter.exception;
 
 /**
- * Created by klemen on 13.12.2016.
+ * Created by Klemen Polanec on 13.12.2016.
  */
 public class EventRegisteredException extends Exception {
+    public EventRegisteredException(String message) {
+        super(message);
+    }
+
+    public EventRegisteredException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }
