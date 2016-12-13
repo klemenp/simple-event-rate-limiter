@@ -57,4 +57,9 @@ public interface Limiter {
      * @throws EventLimitException
      */
     void registerEvent(String eventKey, int limit, long interval, TimeUnit unit) throws EventRegisteredException;
+
+    /**
+     * Clears expired logs from event logbooks
+     */
+    void purgeEventLogbooks();
 }

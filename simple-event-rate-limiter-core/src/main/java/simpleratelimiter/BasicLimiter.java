@@ -186,6 +186,14 @@ public class BasicLimiter implements Limiter {
         return instance;
     }
 
+    /**
+     * Clears expired logs from event logbooks
+     */
+    public void purgeEventLogbooks()
+    {
+        // TODO Needs to be implemented
+    }
+
     private static class EventLogbook
     {
         private final String eventKey;
