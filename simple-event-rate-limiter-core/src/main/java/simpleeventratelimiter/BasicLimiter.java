@@ -67,31 +67,31 @@ public class BasicLimiter implements Limiter {
         {
             throw new NoEventRegisteredException("No event registered for event key " + eventKey);
         }
-        eventLogbook.getUnhandledLogs().incrementAndGet();
+        if (eventLogbook.getUnhandledLogs().incrementAndGet()==1)
+        {
+            eventLogbook.atLeastOnceHandled=false;
+        }
 
         Thread thread = new Thread(()-> {
             eventLogbook.eventTimestamps.add(logTimestamp);
             long oldestTimestamp = logTimestamp - eventLogbook.milllisInterval;
             // Clean up old logs and find new nextAllowedTimestamp;
-            Iterator<Long> logsIterator = eventLogbook.eventTimestamps.iterator();
+
             int count = 0;
-            while (logsIterator.hasNext())
-            {
-                long currentTimestamp = logsIterator.next();
-                if (currentTimestamp<oldestTimestamp)
-                {
-                    logsIterator.remove();
-                }
-                else
-                {
-                    if (oldestTimestamp>currentTimestamp)
-                    {
-                        oldestTimestamp = currentTimestamp;
+            synchronized (eventLogbook.eventTimestamps) {
+                Iterator<Long> logsIterator = eventLogbook.eventTimestamps.iterator();
+                while (logsIterator.hasNext()) {
+                    long currentTimestamp = logsIterator.next();
+                    if (currentTimestamp < oldestTimestamp) {
+                        logsIterator.remove();
+                    } else {
+                        if (oldestTimestamp > currentTimestamp) {
+                            oldestTimestamp = currentTimestamp;
+                        }
+                        count++;
                     }
-                    count++;
                 }
             }
-            System.out.println("DEBUG count " + count);
             if (count>=eventLogbook.limit)
             {
                 AtomicLong nextAllowedTimestampObj =  nextAllowedTimestamps.get(eventKey);
@@ -109,20 +109,11 @@ public class BasicLimiter implements Limiter {
                 nextAllowedTimestamps.remove(eventKey);
             }
             eventLogbook.getUnhandledLogs().decrementAndGet();
-
-
-            System.out.println("DEBUG thread unhandled logs count: " + eventLogbook.getUnhandledLogs());
-            System.out.println("DEBUG thread logs count: " + eventLogbook.getShortTermEventLogsCount());
-            System.out.println("DEBUG thread left short term: " + eventLogbook.getShortTermEventLogsLeftInInterval());
+            eventLogbook.atLeastOnceHandled|=true;
         });
-
         thread.start();
 
-
-        System.out.println("DEBUG left short term: " + eventLogbook.getShortTermEventLogsLeftInInterval());
-
-        long shortTermRequetsLeft = eventLogbook.getShortTermEventLogsLeftInInterval();
-        System.out.println("DEBUG left " + shortTermRequetsLeft);
+        long shortTermRequetsLeft = eventLogbook.getShortTermEventLogsLeftInInterval(logTimestamp);
         if (shortTermRequetsLeft < 0) {
             throw new EventLimitException("Limit reached for event key " + eventKey + ". Short term counter at limit");
         }
@@ -131,7 +122,6 @@ public class BasicLimiter implements Limiter {
         AtomicLong nextAllowedTimestamp = nextAllowedTimestamps.get(eventKey);
         if (nextAllowedTimestamp==null)
         {
-            System.out.println("DEBUG next allowed null ");
             return;
         }
         else if (nextAllowedTimestamp.longValue()>logTimestamp)
@@ -160,20 +150,17 @@ public class BasicLimiter implements Limiter {
     {
         if (!isEventRegistered(eventKey))
         {
-            Thread thread = new Thread(()-> {
-                EventLogbook eventLogbook = new EventLogbook(eventKey, limit, true, interval, unit);
+            EventLogbook eventLogbook = new EventLogbook(eventKey, limit, true, interval, unit);
+            synchronized (eventLogbook) {
                 eventLogbooks.putIfAbsent(eventKey, eventLogbook);
-                synchronized (eventLogbook) {
-                    try {
-                        logEvent(eventKey);
-                    }
-                    catch (Exception e)
-                    {
-                        log.warn(e.getMessage());
-                    }
+                try {
+                    logEvent(eventKey);
                 }
-            });
-            thread.start();
+                catch (Exception e)
+                {
+                    log.warn(e.getMessage());
+                }
+            }
         }
         else {
             try {
@@ -236,53 +223,56 @@ public class BasicLimiter implements Limiter {
         private final String eventKey;
         private final List<Long> eventTimestamps;
         private final int limit;
-        private final boolean registered;
         private final long milllisInterval;
         private AtomicLong unhandledLogs;
+        private boolean atLeastOnceHandled;
 
         public EventLogbook(String eventKey, int limit, boolean registered, long interval, TimeUnit timeUnit) {
             this.eventKey = eventKey;
-            this.eventTimestamps = Collections.synchronizedList(new ArrayList<Long>());
+            this.eventTimestamps = new LinkedList<Long>();
             this.limit = limit;
-            this.registered = registered;
             this.milllisInterval = TimeUnit.MILLISECONDS.convert(interval, timeUnit);
             unhandledLogs = new AtomicLong(0L);
-        }
-
-        public String getEventKey() {
-            return eventKey;
-        }
-
-        public List<Long> getEventTimestamps() {
-            return eventTimestamps;
-        }
-
-        public int getLimit() {
-            return limit;
-        }
-
-        public boolean isRegistered() {
-            return registered;
+            atLeastOnceHandled = false;
         }
 
         public AtomicLong getUnhandledLogs() {
             return unhandledLogs;
         }
 
-        public long getShortTermEventLogsLeftInInterval()
+        public long getShortTermEventLogsLeftInInterval(long timestamp)
         {
-            long shortTermEventLogsCount = getShortTermEventLogsCount();
-            System.out.println("DEBUG calc shortTermEventLogsCount: " + shortTermEventLogsCount);
+            long shortTermEventLogsCount = getShortTermEventLogsCount(timestamp);
             return limit-shortTermEventLogsCount;
         }
 
-        public long getShortTermEventLogsCount()
+        public long getShortTermEventLogsCount(long timestamp)
         {
             synchronized (this)
             {
                 long unhandled = unhandledLogs.longValue();
                 if (unhandled>0) {
-                    return eventTimestamps.size() + unhandled;
+                    if (atLeastOnceHandled) {
+                        return eventTimestamps.size() + unhandled;
+                    }
+                    else
+                    {
+                        long oldestTimestamp = timestamp - milllisInterval;
+                        synchronized (eventTimestamps) {
+                            Iterator<Long> logsIterator = eventTimestamps.iterator();
+                            int count = 0;
+                            while (logsIterator.hasNext()) {
+                                long currentTimestamp = logsIterator.next();
+                                if (currentTimestamp >= oldestTimestamp) {
+                                    if (oldestTimestamp > currentTimestamp) {
+                                        oldestTimestamp = currentTimestamp;
+                                    }
+                                    count++;
+                                }
+                            }
+                            return count + unhandled;
+                        }
+                    }
                 }
                 else
                 {

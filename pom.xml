@@ -7,7 +7,7 @@
     <groupId>simple-event-rate-limiter</groupId>
     <artifactId>simple-event-rate-limiter</artifactId>
     <packaging>pom</packaging>
-    <version>1.1-SNAPSHOT</version>
+    <version>1.0.1</version>
 
     <modules>
         <module>simple-event-rate-limiter-core</module>
