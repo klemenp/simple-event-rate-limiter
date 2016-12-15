@@ -15,6 +15,8 @@
  */
 package simpleeventratelimiter;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import simpleeventratelimiter.exception.EventLimitException;
 import simpleeventratelimiter.exception.EventRegisteredException;
 import simpleeventratelimiter.exception.NoEventRegisteredException;
@@ -31,6 +33,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * Created by Klemen Polanec on 13.12.2016.
  */
 public class BasicLimiter implements Limiter {
+    private static final Logger log = LoggerFactory.getLogger(BasicLimiter.class);
 
     private static BasicLimiter instance = null;
 
@@ -65,6 +68,11 @@ public class BasicLimiter implements Limiter {
             throw new NoEventRegisteredException("No event registered for event key " + eventKey);
         }
         AtomicLong nextAllowedTimestamp = nextAllowedTimestamps.get(eventKey);
+        long shortTermRequetsLeft = eventLogbook.getLimit() - eventLogbook.getShortTermCounter().incrementAndGet();
+        if (shortTermRequetsLeft<0)
+        {
+            throw new EventLimitException("Limit reached for event key " + eventKey + ". Short term counter at limit");
+        }
         Thread thread = new Thread(()-> {
             eventLogbook.eventTimestamps.add(logTimestamp);
             long oldestTimestamp = logTimestamp - eventLogbook.milllisInterval;
@@ -78,6 +86,7 @@ public class BasicLimiter implements Limiter {
                 if (currentTimestamp<oldestTimestamp)
                 {
                     logsIterator.remove();
+                    eventLogbook.getShortTermCounter().decrementAndGet();
                 }
                 else
                 {
@@ -137,13 +146,27 @@ public class BasicLimiter implements Limiter {
     {
         if (!isEventRegistered(eventKey))
         {
-            EventLogbook eventLogbook = new EventLogbook(eventKey, limit, true, interval, unit);
-            eventLogbooks.putIfAbsent(eventKey, eventLogbook);
+            Thread thread = new Thread(()-> {
+                EventLogbook eventLogbook = new EventLogbook(eventKey, limit, true, interval, unit);
+                eventLogbooks.putIfAbsent(eventKey, eventLogbook);
+                synchronized (eventLogbook) {
+                    try {
+                        logEvent(eventKey);
+                    }
+                    catch (Exception e)
+                    {
+                        log.warn(e.getMessage());
+                    }
+                }
+            });
+            thread.start();
         }
-        try {
-            logEvent(eventKey);
-        } catch (NoEventRegisteredException e) {
-            throw new RuntimeException(e.getMessage(), e);
+        else {
+            try {
+                logEvent(eventKey);
+            } catch (NoEventRegisteredException e) {
+                throw new RuntimeException(e.getMessage(), e);
+            }
         }
     }
 
@@ -201,6 +224,7 @@ public class BasicLimiter implements Limiter {
         private final int limit;
         private final boolean registered;
         private final long milllisInterval;
+        private AtomicLong shortTermCounter;
 
         public EventLogbook(String eventKey, int limit, boolean registered, long interval, TimeUnit timeUnit) {
             this.eventKey = eventKey;
@@ -208,6 +232,7 @@ public class BasicLimiter implements Limiter {
             this.limit = limit;
             this.registered = registered;
             this.milllisInterval = TimeUnit.MILLISECONDS.convert(interval, timeUnit);
+            shortTermCounter = new AtomicLong(0);
         }
 
         public String getEventKey() {
@@ -224,6 +249,10 @@ public class BasicLimiter implements Limiter {
 
         public boolean isRegistered() {
             return registered;
+        }
+
+        public AtomicLong getShortTermCounter() {
+            return shortTermCounter;
         }
     }
 }

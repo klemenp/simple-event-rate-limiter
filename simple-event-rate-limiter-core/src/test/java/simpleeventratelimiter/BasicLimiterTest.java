@@ -34,22 +34,54 @@ public class BasicLimiterTest extends TestCase {
         {
             if (eventCnt>10)
             {
+                long startMillis = System.currentTimeMillis();
                 try
                 {
-                    limiter.logEvent("test event", 10, 1, TimeUnit.MINUTES);
+                    limiter.logEvent("test event 1", 10, 1, TimeUnit.MINUTES);
                     fail("EventLimitException should be thrown");
                 }
                 catch (EventLimitException e)
                 {
                     // all good
                 }
+                System.out.println("Event logged in millis: "+ (System.currentTimeMillis()-startMillis));
             }
             else
             {
-                limiter.logEvent("test event", 10, 1, TimeUnit.MINUTES);
+                long startMillis = System.currentTimeMillis();
+                limiter.logEvent("test event 1", 10, 1, TimeUnit.MINUTES);
+                System.out.println("Event logged in millis: "+ (System.currentTimeMillis()-startMillis));
             }
         }
+    }
 
-
+    @Test
+    public void testEventLimitExceptionWithDelays() throws Exception
+    {
+        Limiter limiter = BasicLimiter.getInstance();
+        for (int eventCnt = 1; eventCnt<=20;eventCnt++)
+        {
+            if (eventCnt>10)
+            {
+                long startMillis = System.currentTimeMillis();
+                try
+                {
+                    limiter.logEvent("test event 2", 10, 1, TimeUnit.MINUTES);
+                    fail("EventLimitException should be thrown");
+                }
+                catch (EventLimitException e)
+                {
+                    // all good
+                }
+                System.out.println("Event logged in millis: "+ (System.currentTimeMillis()-startMillis));
+            }
+            else
+            {
+                long startMillis = System.currentTimeMillis();
+                limiter.logEvent("test event 2", 10, 1, TimeUnit.MINUTES);
+                System.out.println("Event logged in millis: "+ (System.currentTimeMillis()-startMillis));
+            }
+            Thread.sleep(1000);
+        }
     }
 }
