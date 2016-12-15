@@ -68,11 +68,12 @@ public class BasicLimiter implements Limiter {
             throw new NoEventRegisteredException("No event registered for event key " + eventKey);
         }
         AtomicLong nextAllowedTimestamp = nextAllowedTimestamps.get(eventKey);
-        long shortTermRequetsLeft = eventLogbook.getLimit() - eventLogbook.getShortTermCounter().incrementAndGet();
-        if (shortTermRequetsLeft<0)
+        long shortTermRequetsLeft = eventLogbook.getLimit() - eventLogbook.getShortTermCounter().get();
+        if (shortTermRequetsLeft<=0)
         {
             throw new EventLimitException("Limit reached for event key " + eventKey + ". Short term counter at limit");
         }
+        eventLogbook.getShortTermCounter().incrementAndGet();
         Thread thread = new Thread(()-> {
             eventLogbook.eventTimestamps.add(logTimestamp);
             long oldestTimestamp = logTimestamp - eventLogbook.milllisInterval;
