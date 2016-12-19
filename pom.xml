@@ -11,6 +11,7 @@
 
     <modules>
         <module>simple-event-rate-limiter-core</module>
+        <module>simpl-event-rate-limiter-guava</module>
     </modules>
 
     <developers>
