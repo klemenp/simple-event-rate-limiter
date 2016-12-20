@@ -13,15 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package simpleeventratelimiter;
+package simpleeventratelimiter.guava;
 
 import org.junit.Test;
+import simpleeventratelimiter.BasicLimiter;
+import simpleeventratelimiter.Limiter;
 import simpleeventratelimiter.test.BaseLimiterTest;
 
 /**
  * Created by klemen on 13.12.2016.
  */
-public class BasicLimiterTest extends BaseLimiterTest {
+public class GuavaLimiterTest extends BaseLimiterTest {
 
     @Test
     public void testEventLimitException() throws Exception

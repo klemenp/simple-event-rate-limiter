@@ -61,5 +61,6 @@ public interface Limiter {
     /**
      * Clears expired logs from event logbooks
      */
+    @Deprecated
     void purgeEventLogbooks();
 }
