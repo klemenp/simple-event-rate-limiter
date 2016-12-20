@@ -13,29 +13,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package simpleeventratelimiter.guava;
+package simpleeventratelimiter.couchbase;
 
 import org.junit.Test;
-import simpleeventratelimiter.BasicLimiter;
 import simpleeventratelimiter.Limiter;
 import simpleeventratelimiter.test.BaseLimiterTest;
 
 /**
  * Created by klemen on 13.12.2016.
  */
-public class GuavaLimiterTest extends BaseLimiterTest {
+public class CouchbaseLimiterTest extends BaseLimiterTest {
 
     @Test
     public void testEventLimitException() throws Exception
     {
-        Limiter limiter = BasicLimiter.getInstance();
+        Limiter limiter = CouchbaseLimiter.getInstance();
         testEventLimitException(limiter);
     }
 
     @Test
     public void testEventLimitExceptionWithDelays() throws Exception
     {
-        Limiter limiter = BasicLimiter.getInstance();
+        Limiter limiter = CouchbaseLimiter.getInstance();
         testEventLimitExceptionWithDelays(limiter);
+    }
+
+    @Test
+    public void testEventLimit1SecondException() throws Exception
+    {
+        Limiter limiter = CouchbaseLimiter.getInstance();
+        testEventLimit1SecondException(limiter);
+    }
+
+    @Test
+    public void testEventLimit1SecondExceptionWithDelays() throws Exception
+    {
+        Limiter limiter = CouchbaseLimiter.getInstance();
+        testEventLimit1SecondExceptionWithDelays(limiter);
     }
 }

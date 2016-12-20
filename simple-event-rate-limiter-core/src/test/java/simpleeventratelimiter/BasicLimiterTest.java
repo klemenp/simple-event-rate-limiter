@@ -36,4 +36,18 @@ public class BasicLimiterTest extends BaseLimiterTest {
         Limiter limiter = BasicLimiter.getInstance();
         testEventLimitExceptionWithDelays(limiter);
     }
+
+    @Test
+    public void testEventLimit1SecondException() throws Exception
+    {
+        Limiter limiter = BasicLimiter.getInstance();
+        testEventLimit1SecondException(limiter);
+    }
+
+    @Test
+    public void testEventLimit1SecondExceptionWithDelays() throws Exception
+    {
+        Limiter limiter = BasicLimiter.getInstance();
+        testEventLimit1SecondExceptionWithDelays(limiter);
+    }
 }

@@ -5,11 +5,11 @@
     <parent>
         <artifactId>simple-event-rate-limiter</artifactId>
         <groupId>simple-event-rate-limiter</groupId>
-        <version>1.0.1</version>
+        <version>1.0.2-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>simpl-event-rate-limiter-guava</artifactId>
+    <artifactId>simpl-event-rate-limiter-couchbase</artifactId>
 
 
     <properties>
@@ -21,12 +21,7 @@
         <dependency>
             <groupId>simple-event-rate-limiter</groupId>
             <artifactId>simple-event-rate-limiter-core</artifactId>
-            <version>1.0.1</version>
-        </dependency>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>18.0</version>
+            <version>${parent.version}</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
