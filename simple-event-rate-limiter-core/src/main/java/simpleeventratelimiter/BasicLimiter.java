@@ -213,6 +213,7 @@ public class BasicLimiter implements Limiter {
     /**
      * Clears expired logs from event logbooks
      */
+    @Deprecated
     public void purgeEventLogbooks()
     {
         // TODO Needs to be implemented
