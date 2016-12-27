@@ -67,6 +67,11 @@ public class BasicLimiter implements Limiter {
         {
             throw new NoEventRegisteredException("No event registered for event key " + eventKey);
         }
+        if (eventLogbook.getUnhandledLogs().longValue()>eventLogbook.limit)
+        {
+            log.warn("Shortterm overflow - skipping log of event.");
+            throw new EventLimitException("Limit reached for event key " + eventKey + ". Shortterm overflow - skipping log of event.");
+        }
         if (eventLogbook.getUnhandledLogs().incrementAndGet()==1)
         {
             eventLogbook.atLeastOnceHandled=false;

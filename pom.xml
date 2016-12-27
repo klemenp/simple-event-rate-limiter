@@ -11,7 +11,7 @@
 
     <modules>
         <module>simple-event-rate-limiter-core</module>
-        <module>simpl-event-rate-limiter-couchbase</module>
+        <module>simple-event-rate-limiter-couchbase</module>
     </modules>
 
     <developers>
