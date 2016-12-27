@@ -161,9 +161,15 @@ public class CouchbaseLimiter implements Limiter {
         }
     }
 
-    private EventLogbook getEventLogbook(String eventKey)
-    {
-
+    private EventLogbook getEventLogbook(String eventKey) throws Exception {
+        SerializableDocument document = couchbaseClientManager.getClient().get(createEventLogbookKey(eventKey), SerializableDocument.class);
+        if (document!=null) {
+            return (EventLogbook)document.content();
+        }
+        else
+        {
+            return null;
+        }
     }
 
     private void replaceEventLogbook(String eventKey, EventLogbook eventLogbook) throws Exception {
