@@ -74,7 +74,12 @@ public class CouchbaseLimiter implements Limiter {
     public void logEvent(String eventKey) throws EventLimitException, NoEventRegisteredException
     {
         long logTimestamp = System.currentTimeMillis();
-        EventLogbook eventLogbook = getEventLogbook(eventKey);
+        EventLogbook eventLogbook = null;
+        try {
+            eventLogbook = getEventLogbook(eventKey);
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
         if (eventLogbook==null)
         {
             throw new NoEventRegisteredException("No event registered for event key " + eventKey);
@@ -319,7 +324,5 @@ public class CouchbaseLimiter implements Limiter {
             //unhandledLogs = new AtomicLong(0L);
             atLeastOnceHandled = false;
         }
-
-
     }
 }
