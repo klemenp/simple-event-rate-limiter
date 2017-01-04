@@ -30,7 +30,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Couchbase based rate limiter
@@ -84,7 +83,7 @@ public class CouchbaseLimiter implements Limiter {
             }
             long shortTermCounter;
             try {
-                shortTermCounter = couchbaseClientManager.getClient().counter(createShortTermCounterKey(eventKey), 1).content().longValue()
+                shortTermCounter = couchbaseClientManager.getClient().counter(createShortTermCounterKey(eventKey), 1).content().longValue();
                 if (shortTermCounter==1)
                 {
                     eventLogbook.atLeastOnceHandled=false;
@@ -237,7 +236,7 @@ public class CouchbaseLimiter implements Limiter {
             CouchbaseLimiter.EventLogbook eventLogbook = new CouchbaseLimiter.EventLogbook(eventKey, limit, true, interval, unit);
 //            synchronized (eventLogbook) {
             try {
-                couchbaseClientManager.getClient().insert(createEventLogbookKey(eventKey), eventLogbook);
+                couchbaseClientManager.getClient().insert(SerializableDocument.create(createEventLogbookKey(eventKey), eventLogbook));
             } catch (Exception e) {
                 throw new RuntimeException(e.getMessage(), e);
             }

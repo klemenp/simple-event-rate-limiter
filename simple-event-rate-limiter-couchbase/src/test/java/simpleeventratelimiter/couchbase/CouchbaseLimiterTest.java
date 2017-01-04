@@ -16,8 +16,11 @@
 package simpleeventratelimiter.couchbase;
 
 import org.junit.Test;
+import simpleeventratelimiter.BasicLimiter;
 import simpleeventratelimiter.Limiter;
 import simpleeventratelimiter.test.BaseLimiterTest;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by klemen on 13.12.2016.
@@ -28,27 +31,27 @@ public class CouchbaseLimiterTest extends BaseLimiterTest {
     public void testEventLimitException() throws Exception
     {
         Limiter limiter = CouchbaseLimiter.getInstance();
-        testEventLimitException(limiter);
+        super.testEventLimitException(limiter, 1000, 10, 1, TimeUnit.SECONDS);
     }
 
     @Test
     public void testEventLimitExceptionWithDelays() throws Exception
     {
         Limiter limiter = CouchbaseLimiter.getInstance();
-        testEventLimitExceptionWithDelays(limiter);
+        super.testEventLimitExceptionWithDelays(limiter, 1000, 16000, 10, 15, TimeUnit.SECONDS);
     }
 
     @Test
-    public void testEventLimit1SecondException() throws Exception
+    public void testEventLimitException2() throws Exception
     {
         Limiter limiter = CouchbaseLimiter.getInstance();
-        testEventLimit1SecondException(limiter);
+        super.testEventLimitException(limiter, 16000, 10, 15, TimeUnit.SECONDS);
     }
 
     @Test
-    public void testEventLimit1SecondExceptionWithDelays() throws Exception
+    public void testEventLimitExceptionWithDelays2() throws Exception
     {
         Limiter limiter = CouchbaseLimiter.getInstance();
-        testEventLimit1SecondExceptionWithDelays(limiter);
+        super.testEventLimitExceptionWithDelays(limiter, 80, 1000, 10, 1, TimeUnit.SECONDS);
     }
 }
