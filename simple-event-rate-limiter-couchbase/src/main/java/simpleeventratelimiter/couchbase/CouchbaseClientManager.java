@@ -28,4 +28,6 @@ public interface CouchbaseClientManager {
     void closeConnections();
 
     void removeClient();
+
+    void setupCluster();
 }

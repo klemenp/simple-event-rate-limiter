@@ -48,6 +48,7 @@ public class CouchbaseLimiter implements Limiter {
     {
         super();
         couchbaseClientManager = CouchbaseClientManagerImpl.getInstance();
+        couchbaseClientManager.setupCluster();
     }
 
     public static CouchbaseLimiter getInstance()

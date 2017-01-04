@@ -19,28 +19,29 @@
 
     <build>
         <plugins>
-            <!--<plugin>-->
-                <!--<groupId>io.fabric8</groupId>-->
-                <!--<artifactId>docker-maven-plugin</artifactId>-->
-                <!--<version>0.18.1</version>-->
-                <!--<configuration>-->
-                    <!--<watchInterval>500</watchInterval>-->
-                    <!--<logDate>default</logDate>-->
-                    <!--<verbose>true</verbose>-->
-                    <!--<autoPull>always</autoPull>-->
-                    <!--<images>-->
-                        <!--<image>-->
-                            <!--<alias>couchbase</alias>-->
-                            <!--<name>couchbase</name>-->
-                            <!--<run>-->
-                                <!--<ports>-->
-                                    <!--<port>8080:8080</port>-->
-                                <!--</ports>-->
-                            <!--</run>-->
-                        <!--</image>-->
-                    <!--</images>-->
-                <!--</configuration>-->
-            <!--</plugin>-->
+            <plugin>
+                <groupId>io.fabric8</groupId>
+                <artifactId>docker-maven-plugin</artifactId>
+                <version>0.18.1</version>
+                <configuration>
+                    <watchInterval>500</watchInterval>
+                    <logDate>default</logDate>
+                    <verbose>true</verbose>
+                    <autoPull>always</autoPull>
+                    <images>
+                        <image>
+                            <alias>couchbase</alias>
+                            <name>couchbase</name>
+                            <run>
+                                <ports>
+                                    <port>8091:8091</port>
+                                    <port>8092:8092</port>
+                                </ports>
+                            </run>
+                        </image>
+                    </images>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

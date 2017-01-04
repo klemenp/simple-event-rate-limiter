@@ -18,6 +18,10 @@ package simpleeventratelimiter.couchbase;
 import com.couchbase.client.java.Bucket;
 import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.CouchbaseCluster;
+import com.couchbase.client.java.bucket.BucketType;
+import com.couchbase.client.java.cluster.BucketSettings;
+import com.couchbase.client.java.cluster.ClusterManager;
+import com.couchbase.client.java.cluster.DefaultBucketSettings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,12 +41,15 @@ import java.util.concurrent.TimeUnit;
 public class CouchbaseClientManagerImpl implements CouchbaseClientManager {
     private static final Logger log = LoggerFactory.getLogger(CouchbaseClientManagerImpl.class);
 
-    private static final String DEFAULT_PROPERTIES_RESOURCE_FILENAME = "couchbase_limiter_default.properties";
-    private static final String PROPERTIES_RESOURCE_FILENAME = "couchbase_limiter.properties";
+    private static final String DEFAULT_PROPERTIES_RESOURCE_FILENAME = "/couchbase_limiter_default.properties";
+    private static final String PROPERTIES_RESOURCE_FILENAME = "/couchbase_limiter.properties";
 
     private static final String BUCKET_PASSWORD_PROPERTIY_KEY = "bucket.password";
     private static final String BUCKET_NAME_PROPERTIY_KEY = "bucket.name";
     private static final String COUCHBASE_HOSTS_PROPERTIY_KEY = "couchbase.hosts";
+
+    private static final String CLUSTER_PASSWORD_PROPERTIY_KEY = "cluster.password";
+    private static final String CLUSTER_USERNAME_PROPERTIY_KEY = "cluster.username";
 
     private Bucket client = null;
     private Cluster cluster;
@@ -74,11 +81,25 @@ public class CouchbaseClientManagerImpl implements CouchbaseClientManager {
     {
         if (instance == null)
         {
-            return getInstance();
+            synchronized (CouchbaseClientManagerImpl.class) {
+                if (instance == null) {
+                    instance = new CouchbaseClientManagerImpl();
+                }
+            }
         }
-        else {
-            return instance;
+        return instance;
+    }
+
+    public void setupCluster()
+    {
+        Cluster cluster = getCluster();
+        ClusterManager clusterManager = cluster.clusterManager();
+        if (!clusterManager.hasBucket(getBucketName()))
+        {
+            BucketSettings bucketSettings = new DefaultBucketSettings.Builder().name(getBucketName()).password(getBucketPassword()).type(BucketType.MEMCACHED).build();
+            clusterManager.insertBucket(bucketSettings);
         }
+
     }
 
     private String getBucketName()
@@ -89,6 +110,16 @@ public class CouchbaseClientManagerImpl implements CouchbaseClientManager {
     private String getBucketPassword()
     {
         return properties.getProperty(BUCKET_PASSWORD_PROPERTIY_KEY);
+    }
+
+    private String getClusterUsername()
+    {
+        return properties.getProperty(CLUSTER_USERNAME_PROPERTIY_KEY);
+    }
+
+    private String getClusterPassword()
+    {
+        return properties.getProperty(CLUSTER_PASSWORD_PROPERTIY_KEY);
     }
 
     private List<String> getHosts()
