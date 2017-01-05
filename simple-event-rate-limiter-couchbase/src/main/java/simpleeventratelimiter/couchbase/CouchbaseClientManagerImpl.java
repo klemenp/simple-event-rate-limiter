@@ -22,15 +22,23 @@ import com.couchbase.client.java.bucket.BucketType;
 import com.couchbase.client.java.cluster.BucketSettings;
 import com.couchbase.client.java.cluster.ClusterManager;
 import com.couchbase.client.java.cluster.DefaultBucketSettings;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.http.HttpHeaders;
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.message.BasicNameValuePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-import java.util.StringTokenizer;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -46,7 +54,9 @@ public class CouchbaseClientManagerImpl implements CouchbaseClientManager {
 
     private static final String BUCKET_PASSWORD_PROPERTIY_KEY = "bucket.password";
     private static final String BUCKET_NAME_PROPERTIY_KEY = "bucket.name";
+    private static final String BUCKET_RAM_QUOTA_PROPERTIY_KEY = "bucket.ram_quota";
     private static final String COUCHBASE_HOSTS_PROPERTIY_KEY = "couchbase.hosts";
+    private static final String COUCHBASE_PORT_PROPERTIY_KEY = "couchbase.port";
 
     private static final String CLUSTER_PASSWORD_PROPERTIY_KEY = "cluster.password";
     private static final String CLUSTER_USERNAME_PROPERTIY_KEY = "cluster.username";
@@ -90,16 +100,85 @@ public class CouchbaseClientManagerImpl implements CouchbaseClientManager {
         return instance;
     }
 
-    public void setupCluster()
+    public void initializeCluster() throws IOException {
+
+        HttpPost httpPost = new HttpPost(getCouchbaseRestUrl(0)+"/settings/web");
+        Map<String, String> formParams = new HashMap<>();
+
+        formParams.put("password",getClusterPassword());
+        formParams.put("username",getClusterUsername());
+        formParams.put("port","SAME");
+
+        try {
+
+            String basicCredentials = "Basic " + Base64.encodeBase64URLSafeString((getClusterUsername()+":"+getClusterPassword()).getBytes());
+
+            HttpResponse httpResponse = executeHttpFormPostRequest(httpPost, basicCredentials, formParams);
+
+            log.debug("Res code: " + httpResponse.getStatusLine().getStatusCode());
+
+        }
+        finally {
+            httpPost.releaseConnection();
+//            cm.close();
+        }
+
+    }
+
+    private String getCouchbaseRestUrl(int nodeIndex)
+    {
+        List<String> ipList = getHosts();
+        if (nodeIndex>=ipList.size())
+        {
+            throw new IllegalArgumentException("Index given too big");
+        }
+        String url = "http://" + ipList.get(nodeIndex) + ":"+getCouchbasePort()+"";
+        return url;
+
+    }
+
+    public void initializeBucket()
     {
         Cluster cluster = getCluster();
-        ClusterManager clusterManager = cluster.clusterManager();
+        ClusterManager clusterManager = cluster.clusterManager(getClusterUsername(), getClusterPassword());
         if (!clusterManager.hasBucket(getBucketName()))
         {
-            BucketSettings bucketSettings = new DefaultBucketSettings.Builder().name(getBucketName()).password(getBucketPassword()).type(BucketType.MEMCACHED).build();
+            BucketSettings bucketSettings = new DefaultBucketSettings.Builder().name(getBucketName()).password(getBucketPassword()).type(BucketType.MEMCACHED).quota(getBucketRamQuota()).build();
             clusterManager.insertBucket(bucketSettings);
         }
 
+    }
+
+
+    private HttpResponse executeHttpFormPostRequest(HttpPost request, String basicCredentials, Map<String, String> formParams) throws
+            IOException {
+
+        PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
+        HttpClientBuilder clientBuilder = HttpClients.custom()
+                .setConnectionManager(cm).setConnectionManagerShared(true);
+
+        CloseableHttpClient httpClient = clientBuilder.build();
+
+        try {
+            if (basicCredentials != null) {
+                log.info("Using basic credentials");
+                request.setHeader(HttpHeaders.AUTHORIZATION, basicCredentials);
+            }
+
+
+            List<NameValuePair> params = new ArrayList<>();
+            if (formParams != null) {
+                for (Map.Entry<String, String> formParam : formParams.entrySet()) {
+                    params.add(new BasicNameValuePair(formParam.getKey(), formParam.getValue()));
+                }
+            }
+
+            request.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
+            return httpClient.execute(request);
+        }
+        finally {
+            httpClient.close();
+        }
     }
 
     private String getBucketName()
@@ -112,6 +191,19 @@ public class CouchbaseClientManagerImpl implements CouchbaseClientManager {
         return properties.getProperty(BUCKET_PASSWORD_PROPERTIY_KEY);
     }
 
+    private int getBucketRamQuota()
+    {
+        String prop =  properties.getProperty(BUCKET_RAM_QUOTA_PROPERTIY_KEY);
+        if (prop!=null)
+        {
+            return Integer.parseInt(prop);
+        }
+        else
+        {
+            return 128;
+        }
+    }
+
     private String getClusterUsername()
     {
         return properties.getProperty(CLUSTER_USERNAME_PROPERTIY_KEY);
@@ -120,6 +212,11 @@ public class CouchbaseClientManagerImpl implements CouchbaseClientManager {
     private String getClusterPassword()
     {
         return properties.getProperty(CLUSTER_PASSWORD_PROPERTIY_KEY);
+    }
+
+    private String getCouchbasePort()
+    {
+        return properties.getProperty(COUCHBASE_PORT_PROPERTIY_KEY);
     }
 
     private List<String> getHosts()

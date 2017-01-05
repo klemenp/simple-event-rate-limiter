@@ -26,11 +26,18 @@ import java.util.concurrent.TimeUnit;
  */
 public class CouchbaseLimiterTest extends BaseLimiterTest {
 
+    @Override
+    protected void setUp() throws Exception {
+        super.setUp();
+        CouchbaseClientManager couchbaseClientManager = CouchbaseClientManagerImpl.getInstance();
+        couchbaseClientManager.initializeCluster();
+    }
+
     @Test
     public void testEventLimitException() throws Exception
     {
         Limiter limiter = CouchbaseLimiter.getInstance();
-//        super.testEventLimitException(limiter, 1000, 10, 1, TimeUnit.SECONDS);
+        super.testEventLimitException(limiter, 1000, 10, 1, TimeUnit.SECONDS);
     }
 
     @Test

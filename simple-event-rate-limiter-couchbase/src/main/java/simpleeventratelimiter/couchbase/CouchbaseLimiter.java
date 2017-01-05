@@ -17,6 +17,7 @@ package simpleeventratelimiter.couchbase;
 
 import com.couchbase.client.java.document.JsonLongDocument;
 import com.couchbase.client.java.document.SerializableDocument;
+import com.couchbase.client.java.error.DocumentAlreadyExistsException;
 import com.couchbase.client.java.error.DocumentDoesNotExistException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +49,7 @@ public class CouchbaseLimiter implements Limiter {
     {
         super();
         couchbaseClientManager = CouchbaseClientManagerImpl.getInstance();
-        couchbaseClientManager.setupCluster();
+        couchbaseClientManager.initializeBucket();
     }
 
     public static CouchbaseLimiter getInstance()
@@ -238,6 +239,8 @@ public class CouchbaseLimiter implements Limiter {
 //            synchronized (eventLogbook) {
             try {
                 couchbaseClientManager.getClient().insert(SerializableDocument.create(createEventLogbookKey(eventKey), eventLogbook));
+            } catch (DocumentAlreadyExistsException e) {
+                log.debug("Must have been just regiostered: " + e.getMessage());
             } catch (Exception e) {
                 throw new RuntimeException(e.getMessage(), e);
             }

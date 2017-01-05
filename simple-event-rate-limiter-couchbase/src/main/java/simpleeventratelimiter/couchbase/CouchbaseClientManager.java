@@ -17,6 +17,8 @@ package simpleeventratelimiter.couchbase;
 
 import com.couchbase.client.java.Bucket;
 
+import java.io.IOException;
+
 /**
  * Couchbase manager
  *
@@ -29,5 +31,6 @@ public interface CouchbaseClientManager {
 
     void removeClient();
 
-    void setupCluster();
+    void initializeCluster() throws IOException;
+    void initializeBucket();
 }
