@@ -143,7 +143,7 @@ public class CouchbaseClientManagerImpl implements CouchbaseClientManager {
         ClusterManager clusterManager = cluster.clusterManager(getClusterUsername(), getClusterPassword());
         if (!clusterManager.hasBucket(getBucketName()))
         {
-            BucketSettings bucketSettings = new DefaultBucketSettings.Builder().name(getBucketName()).password(getBucketPassword()).type(BucketType.MEMCACHED).quota(getBucketRamQuota()).build();
+            BucketSettings bucketSettings = new DefaultBucketSettings.Builder().name(getBucketName()).password(getBucketPassword()).type(BucketType.COUCHBASE).quota(getBucketRamQuota()).build();
             clusterManager.insertBucket(bucketSettings);
         }
 
