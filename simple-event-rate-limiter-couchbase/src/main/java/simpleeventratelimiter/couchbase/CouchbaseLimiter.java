@@ -52,6 +52,11 @@ public class CouchbaseLimiter implements Limiter {
         couchbaseClientManager.initializeBucket();
     }
 
+    public CouchbaseClientManager getCouchbaseClientManager()
+    {
+        return couchbaseClientManager;
+    }
+
     public static CouchbaseLimiter getInstance()
     {
         if (instance == null)
@@ -65,6 +70,15 @@ public class CouchbaseLimiter implements Limiter {
         return instance;
     }
 
+    public long counter(String eventKey, int delta, int initial) throws Exception
+    {
+        String id = createShortTermCounterKey(eventKey);
+//        System.out.println("counter id: " + id);
+        long cnt =  couchbaseClientManager.getClient().counter(id, delta, initial).content().longValue();
+//        System.out.println("counter id: " + id + " new val:" + cnt);
+        return cnt;
+    }
+
     /**
      * Logs event or throws @{@link EventLimitException} if rate limit reached.
      * Throws @{@link NoEventRegisteredException} if there's is no event registered.
@@ -76,19 +90,19 @@ public class CouchbaseLimiter implements Limiter {
     public void logEvent(String eventKey) throws EventLimitException, NoEventRegisteredException
     {
         long logTimestamp = System.currentTimeMillis();
-        try {
-            EventLogbook eventLogbook = getEventLogbook(eventKey);
+//        try {
+        EventLogbook eventLogbook = getEventLogbook(eventKey);
 
-            if (eventLogbook==null)
+        if (eventLogbook==null)
             {
                 throw new NoEventRegisteredException("No event registered for event key " + eventKey);
             }
             long shortTermCounter;
             try {
-                synchronized (this) {
-                    Thread.sleep(100);
-                    shortTermCounter = couchbaseClientManager.getClient().counter(createShortTermCounterKey(eventKey), 1, 1).content().longValue();
-                }
+//                synchronized (this) {
+//                    Thread.sleep(100);
+                    shortTermCounter = counter(eventKey, 1, 1);
+//                }
                 if (shortTermCounter==1)
                 {
                     eventLogbook.atLeastOnceHandled=false;
@@ -141,17 +155,25 @@ public class CouchbaseLimiter implements Limiter {
                         throw new RuntimeException(e.getMessage(), e);
                     }
                 }
+
+                eventLogbook.atLeastOnceHandled|=true;
+
                 try {
-                    couchbaseClientManager.getClient().counter(createShortTermCounterKey(eventKey), -1);
+                    couchbaseClientManager.getClient().replace(SerializableDocument.create(createEventLogbookKey(eventKey), eventLogbook));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+                try {
+                    counter(eventKey, -1, 0);
                 } catch (Exception e) {
                     throw new RuntimeException(e.getMessage(), e);
                 }
-                eventLogbook.atLeastOnceHandled|=true;
             });
             thread.start();
 
             long shortTermRequestsLeft = getShortTermEventLogsLeftInInterval(eventLogbook, shortTermCounter, logTimestamp);
-            log.debug("shortTermRequetsLeft: " + shortTermRequestsLeft);
+            System.out.println(("DEBUG shortTermRequetsLeft: " + shortTermRequestsLeft));
             if (shortTermRequestsLeft < 0) {
                 throw new EventLimitException("Limit reached for event key " + eventKey + ". Short term counter at limit");
             }
@@ -171,13 +193,18 @@ public class CouchbaseLimiter implements Limiter {
             {
                 throw new EventLimitException("Limit reached for event key " + eventKey + ". Next event allowed on " + nextAllowedTimestamp.longValue());
             }
+//        } catch (Exception e) {
+//            throw new RuntimeException(e.getMessage(), e);
+//        }
+    }
+
+    private EventLogbook getEventLogbook(String eventKey) {
+        SerializableDocument document = null;
+        try {
+            document = couchbaseClientManager.getClient().get(createEventLogbookKey(eventKey), SerializableDocument.class);
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage(), e);
         }
-    }
-
-    private EventLogbook getEventLogbook(String eventKey) throws Exception {
-        SerializableDocument document = couchbaseClientManager.getClient().get(createEventLogbookKey(eventKey), SerializableDocument.class);
         if (document!=null) {
             return (EventLogbook)document.content();
         }
@@ -192,31 +219,32 @@ public class CouchbaseLimiter implements Limiter {
     }
 
     private Long getNextAllowedTimestamp(String eventKey) throws Exception {
-        JsonLongDocument document = couchbaseClientManager.getClient().get(createNextAllowedTimestampKey(eventKey), JsonLongDocument.class);
-        if (document!=null) {
-            return (Long)document.content();
+        try {
+            JsonLongDocument document = couchbaseClientManager.getClient().get(createNextAllowedTimestampKey(eventKey), JsonLongDocument.class);
+            if (document != null) {
+                return (Long) document.content();
+            }
         }
-        else
-        {
-            return null;
-        }
+        catch (DocumentDoesNotExistException e)
+        {}
+        return null;
     }
 
     private void replaceNextAllowedTimestamp(String eventKey, Long nextAllowedTimestamp) throws Exception {
-        couchbaseClientManager.getClient().replace(JsonLongDocument.create(createEventLogbookKey(eventKey), nextAllowedTimestamp));
+        couchbaseClientManager.getClient().replace(JsonLongDocument.create(createNextAllowedTimestampKey(eventKey), nextAllowedTimestamp));
     }
 
-    private String createShortTermCounterKey(String eventKey)
+    public static String createShortTermCounterKey(String eventKey)
     {
         return "L_STC_" + eventKey;
     }
 
-    private String createEventLogbookKey(String eventKey)
+    public static String createEventLogbookKey(String eventKey)
     {
         return "L_ELB_" + eventKey;
     }
 
-    private String createNextAllowedTimestampKey(String eventKey)
+    public static String createNextAllowedTimestampKey(String eventKey)
     {
         return "L_NAT_" + eventKey;
     }
@@ -275,7 +303,7 @@ public class CouchbaseLimiter implements Limiter {
 //            synchronized (eventLogbook) {
         try {
             couchbaseClientManager.getClient().insert(SerializableDocument.create(createEventLogbookKey(eventKey), eventLogbook));
-            couchbaseClientManager.getClient().counter(createShortTermCounterKey(eventKey), 0,0);
+            counter(eventKey, 0,0);
         } catch (DocumentAlreadyExistsException e) {
             log.debug("Must have been just registered: " + e.getMessage());
         } catch (Exception e) {

@@ -19,7 +19,6 @@ import org.junit.Test;
 import simpleeventratelimiter.Limiter;
 import simpleeventratelimiter.test.BaseLimiterTest;
 
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -38,18 +37,7 @@ public class CouchbaseLimiterTest extends BaseLimiterTest {
     public void testEventLimitException() throws Exception
     {
 
-        CouchbaseClientManager clientManager = CouchbaseClientManagerImpl.getInstance();
-
-        String id = UUID.randomUUID().toString();
-        long count = clientManager.getClient().counter(id, 1, 1).content().longValue();
-        count = clientManager.getClient().counter(id, 1, 1).content().longValue();
-        count = clientManager.getClient().counter(id, 1, 1).content().longValue();
-
-        count = clientManager.getClient().counter(id, 0, 1).content().longValue();
-
-        assertEquals(3, count);
-
-        Limiter limiter = CouchbaseLimiter.getInstance();
+        CouchbaseLimiter limiter = CouchbaseLimiter.getInstance();
         super.testEventLimitException(limiter, 1000, 10, 1, TimeUnit.SECONDS);
     }
 
