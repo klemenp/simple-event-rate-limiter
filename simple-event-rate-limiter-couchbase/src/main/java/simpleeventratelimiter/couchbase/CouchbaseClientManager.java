@@ -33,4 +33,7 @@ public interface CouchbaseClientManager {
 
     void initializeCluster() throws IOException;
     void initializeBucket();
+
+    String getBucketName();
+
 }

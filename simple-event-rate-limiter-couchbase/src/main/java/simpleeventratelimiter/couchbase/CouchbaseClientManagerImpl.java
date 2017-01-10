@@ -150,6 +150,7 @@ public class CouchbaseClientManagerImpl implements CouchbaseClientManager {
     }
 
 
+
     private HttpResponse executeHttpFormPostRequest(HttpPost request, String basicCredentials, Map<String, String> formParams) throws
             IOException {
 
@@ -181,7 +182,7 @@ public class CouchbaseClientManagerImpl implements CouchbaseClientManager {
         }
     }
 
-    private String getBucketName()
+    public String getBucketName()
     {
         return properties.getProperty(BUCKET_NAME_PROPERTIY_KEY);
     }

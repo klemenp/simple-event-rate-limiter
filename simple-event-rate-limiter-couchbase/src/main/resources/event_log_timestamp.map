@@ -1,0 +1,10 @@
+function(doc, meta)
+{
+    if (meta.t="json")
+    {
+        if (doc.type && doc.type == "favourite")
+        {
+            emit([doc.avlType, doc.avlId], doc);
+        }
+    }
+}
