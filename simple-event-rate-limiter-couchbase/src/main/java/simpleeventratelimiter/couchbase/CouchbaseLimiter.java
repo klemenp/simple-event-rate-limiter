@@ -222,7 +222,7 @@ public class CouchbaseLimiter implements Limiter {
 
     private List<EventLogTimestamp> getTimestamps(String eventKey)
     {
-        ViewResult result = query(CouchbaseClientManager.VIEW_EVENT_LOG_TIMESTAMP, Stale.FALSE, null, null, eventKey, null, null, false);
+        ViewResult result = query(CouchbaseClientManager.VIEW_EVENT_LOG_TIMESTAMP, Stale.FALSE, eventKey, null, null, null, null, false);
         return mapResults(result, EventLogTimestamp.class);
     }
 
