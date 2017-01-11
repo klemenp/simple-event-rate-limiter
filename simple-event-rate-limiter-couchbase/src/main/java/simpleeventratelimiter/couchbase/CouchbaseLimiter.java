@@ -17,6 +17,7 @@ package simpleeventratelimiter.couchbase;
 
 import com.couchbase.client.deps.com.fasterxml.jackson.databind.ObjectMapper;
 import com.couchbase.client.java.Bucket;
+import com.couchbase.client.java.PersistTo;
 import com.couchbase.client.java.document.JsonDocument;
 import com.couchbase.client.java.document.JsonLongDocument;
 import com.couchbase.client.java.document.SerializableDocument;
@@ -31,12 +32,13 @@ import com.couchbase.client.java.view.ViewRow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import simpleeventratelimiter.Limiter;
+import simpleeventratelimiter.couchbase.model.EventLogTimestamp;
+import simpleeventratelimiter.couchbase.model.EventLogbook;
 import simpleeventratelimiter.exception.EventLimitException;
 import simpleeventratelimiter.exception.EventRegisteredException;
 import simpleeventratelimiter.exception.NoEventRegisteredException;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -50,6 +52,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class CouchbaseLimiter implements Limiter {
     private static final Logger log = LoggerFactory.getLogger(CouchbaseLimiter.class);
+
 
     private static CouchbaseLimiter instance = null;
 
@@ -219,8 +222,8 @@ public class CouchbaseLimiter implements Limiter {
 
     private List<EventLogTimestamp> getTimestamps(String eventKey)
     {
-        ViewResult result = query(VIEW_EVENT_LOG_TIMESTAMP, Stale.FALSE, null, null, eventKey, null, null, false);
-        return
+        ViewResult result = query(CouchbaseClientManager.VIEW_EVENT_LOG_TIMESTAMP, Stale.FALSE, null, null, eventKey, null, null, false);
+        return mapResults(result, EventLogTimestamp.class);
     }
 
     private ViewResult query(String viewName, Stale stale, String key, JsonArray keys, String startKey, String endKey, Integer groupLevel, boolean reduce) {
@@ -298,7 +301,7 @@ public class CouchbaseLimiter implements Limiter {
 
         try
         {
-            couchbaseClientManager.getClient().insert(JsonDocument.create(createEventLogTimestampKey(eventKey),  JsonObject.fromJson(jsonMapper.writeValueAsString(eventLogTimestamp))));
+            couchbaseClientManager.getClient().insert(JsonDocument.create(createEventLogTimestampKey(eventKey),  JsonObject.fromJson(jsonMapper.writeValueAsString(eventLogTimestamp))), PersistTo.MASTER);
         }
         catch (Exception e)
         {
@@ -381,7 +384,6 @@ public class CouchbaseLimiter implements Limiter {
      */
     public void logEvent(String eventKey, int limit, int interval, TimeUnit unit) throws EventLimitException
     {
-        System.out.println("debug logging event 1");
         if (!isEventRegistered(eventKey))
         {
             try {
@@ -392,7 +394,6 @@ public class CouchbaseLimiter implements Limiter {
         }
 
         try {
-            System.out.println("debug logging event 2");
             logEvent(eventKey);
         } catch (NoEventRegisteredException e) {
             throw new RuntimeException(e.getMessage(), e);
@@ -412,7 +413,7 @@ public class CouchbaseLimiter implements Limiter {
     public void registerEvent(String eventKey, int limit, long interval, TimeUnit unit) throws EventRegisteredException
     {
         System.out.println("debug Registering event " + eventKey);
-        CouchbaseLimiter.EventLogbook eventLogbook = new CouchbaseLimiter.EventLogbook(eventKey, limit, interval, unit);
+        EventLogbook eventLogbook = new EventLogbook(eventKey, limit, interval, unit);
 //            synchronized (eventLogbook) {
         try {
             couchbaseClientManager.getClient().insert(SerializableDocument.create(createEventLogbookKey(eventKey), eventLogbook));
@@ -438,40 +439,9 @@ public class CouchbaseLimiter implements Limiter {
 
     private long getShortTermEventLogsLeftInInterval(EventLogbook eventLogbook, List<EventLogTimestamp> timestamps, long unhandledLogs, long timestamp)
     {
-        long shortTermEventLogsCount = getShortTermEventLogsCount(eventLogbook, timestamps, unhandledLogs, timestamp);
-        return eventLogbook.limit-shortTermEventLogsCount;
-    }
-
-    private long getShortTermEventLogsCount(EventLogbook eventLogbook, List<EventLogTimestamp> timestamps, long unhandledLogs, long timestamp)
-    {
-//        synchronized (this)
-//        {
-            if (unhandledLogs>0) {
-                if (eventLogbook.atLeastOnceHandled) {
-                    return timestamps.size() + unhandledLogs;
-                }
-                else
-                {
-                    long oldestTimestamp = timestamp - eventLogbook.milllisInterval;
-
-                    int count = 0;
-                    for (EventLogTimestamp eventLogTimestamp : timestamps)
-                    {
-                        long currentTimestamp = eventLogTimestamp.eventTimestamp;
-                        if (oldestTimestamp > currentTimestamp) {
-                            oldestTimestamp = currentTimestamp;
-                        }
-                        count++;
-
-                    }
-                    return count;
-                }
-            }
-            else
-            {
-                return 0;
-            }
-//        }
+        int timstampsSize = timestamps.size();
+        System.out.println("DEBUG timstampsSize: " + timstampsSize);
+        return eventLogbook.limit-(timestamps.size() + unhandledLogs);
     }
 
     /**
@@ -481,30 +451,5 @@ public class CouchbaseLimiter implements Limiter {
     public void purgeEventLogbooks()
     {
         // TODO Needs to be implemented
-    }
-
-    private static class EventLogbook implements Serializable
-    {
-        String type = "EventLogbook";
-        String eventKey;
-        int limit;
-        long milllisInterval;
-        boolean atLeastOnceHandled;
-
-        public EventLogbook(String eventKey, int limit, long interval, TimeUnit timeUnit) {
-            this.eventKey = eventKey;
-            this.limit = limit;
-            this.milllisInterval = TimeUnit.MILLISECONDS.convert(interval, timeUnit);
-            atLeastOnceHandled = false;
-        }
-    }
-
-    private static class EventLogTimestamp implements Serializable
-    {
-        String type = "EventLogTimestamp";
-        String eventKey;
-        Long eventTimestamp;
-
-
     }
 }

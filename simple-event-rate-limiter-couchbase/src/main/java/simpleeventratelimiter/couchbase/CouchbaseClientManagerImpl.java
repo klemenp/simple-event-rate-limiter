@@ -22,6 +22,9 @@ import com.couchbase.client.java.bucket.BucketType;
 import com.couchbase.client.java.cluster.BucketSettings;
 import com.couchbase.client.java.cluster.ClusterManager;
 import com.couchbase.client.java.cluster.DefaultBucketSettings;
+import com.couchbase.client.java.view.DefaultView;
+import com.couchbase.client.java.view.DesignDocument;
+import com.couchbase.client.java.view.View;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -36,8 +39,10 @@ import org.apache.http.message.BasicNameValuePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -147,6 +152,87 @@ public class CouchbaseClientManagerImpl implements CouchbaseClientManager {
             clusterManager.insertBucket(bucketSettings);
         }
 
+        Bucket client = null;
+        try {
+            client = getClient();
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
+
+        DesignDocument dd = client.bucketManager().getDesignDocument(getBucketName());
+        boolean viewExists = false;
+        if (dd!=null) {
+            for (View view : dd.views()) {
+                if (view.name().equals(VIEW_EVENT_LOG_TIMESTAMP)) {
+                    viewExists = true;
+                    break;
+                }
+            }
+        }
+        if (!viewExists) {
+
+            List<View> views = new ArrayList<View>();
+
+            String viewMap = readFile("/" + VIEW_EVENT_LOG_TIMESTAMP + ".map");
+            String viewReduce = readFile("/" + VIEW_EVENT_LOG_TIMESTAMP + ".reduce");
+            View view = DefaultView.create(VIEW_EVENT_LOG_TIMESTAMP, viewMap, viewReduce);
+            views.add(view);
+
+
+            if (views.size() > 0) {
+                DesignDocument doc = DesignDocument.create(getBucketName(), views);
+
+
+                log.debug("Storing design document: " + doc.toString());
+                dd = client.bucketManager().upsertDesignDocument(doc, 20, TimeUnit.SECONDS);
+                log.debug("Design document created for bucket " + getBucketName());
+
+            } else {
+                log.debug("No view for bucket " + getBucketName());
+            }
+        }
+
+    }
+
+    private String readFile(String path) {
+        String resource = "";
+        // Read from resource file.
+        InputStream is = this.getClass().getResourceAsStream(path);
+        if (is == null) {
+            log.debug("no file" + path);
+            return "";
+        } else {
+            try {
+                resource = new String(inputStreamToBytes(is), "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                log.error(e.getMessage(), e);
+                e.printStackTrace();
+                return "";
+            } catch (IOException e) {
+                log.error(e.getMessage(), e);
+                e.printStackTrace();
+                return "";
+            }
+        }
+        if (resource.endsWith("\n")) {
+            resource = resource.substring(0, resource.length() - 1);
+        }
+
+        if (resource.endsWith("\r")) {
+            resource = resource.substring(0, resource.length() - 1);
+        }
+
+        return resource;
+    }
+
+    private byte[] inputStreamToBytes(InputStream inputStream) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        byte[] buffer = new byte[1024];
+        int length = 0;
+        while ((length = inputStream.read(buffer)) != -1) {
+            baos.write(buffer, 0, length);
+        }
+        return baos.toByteArray();
     }
 
 

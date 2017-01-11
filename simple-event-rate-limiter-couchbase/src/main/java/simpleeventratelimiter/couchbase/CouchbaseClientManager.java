@@ -25,6 +25,9 @@ import java.io.IOException;
  * Created by Klemen Polanec on 27.12.2016.
  */
 public interface CouchbaseClientManager {
+
+    String VIEW_EVENT_LOG_TIMESTAMP = "event_log_timestamp";
+
     Bucket getClient() throws Exception;
 
     void closeConnections();

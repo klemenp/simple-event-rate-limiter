@@ -2,9 +2,9 @@ function(doc, meta)
 {
     if (meta.t="json")
     {
-        if (doc.type && doc.type == "favourite")
+        if (doc.type && doc.type == "EventLogTimestamp")
         {
-            emit([doc.avlType, doc.avlId], doc);
+            emit(doc.eventKey, doc);
         }
     }
 }
