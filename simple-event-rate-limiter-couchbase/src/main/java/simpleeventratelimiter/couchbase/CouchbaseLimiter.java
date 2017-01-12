@@ -86,11 +86,16 @@ public class CouchbaseLimiter implements Limiter {
         return instance;
     }
 
-    public long counter(String eventKey, int delta, int initial) throws Exception
+    public long counter(String eventKey, int delta, int initial)
     {
         String id = createShortTermCounterKey(eventKey);
 //        System.out.println("counter id: " + id);
-        long cnt =  couchbaseClientManager.getClient().counter(id, delta, initial).content().longValue();
+        long cnt = 0;
+        try {
+            cnt = couchbaseClientManager.getClient().counter(id, delta, initial).content().longValue();
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
 //        System.out.println("counter id: " + id + " new val:" + cnt);
         return cnt;
     }
@@ -138,7 +143,8 @@ public class CouchbaseLimiter implements Limiter {
             Thread thread = new Thread(()-> {
                 try {
 
-                    long oldestTimestamp = logTimestamp - eventLogbook.milllisInterval;
+                    long treshold = logTimestamp - eventLogbook.milllisInterval;
+                    long oldestTimestamp = treshold;
                     // Clean up old logs and find new nextAllowedTimestamp;
 
 
@@ -146,10 +152,12 @@ public class CouchbaseLimiter implements Limiter {
                     for (EventLogTimestamp eventLogTimestamp : eventTimestamps)
                     {
                         long currentTimestamp = eventLogTimestamp.eventTimestamp;
-                        if (oldestTimestamp > currentTimestamp) {
-                            oldestTimestamp = currentTimestamp;
+                        if (currentTimestamp>treshold) {
+                            if (oldestTimestamp > currentTimestamp) {
+                                oldestTimestamp = currentTimestamp;
+                            }
+                            count++;
                         }
-                        count++;
 
                     }
 
@@ -194,6 +202,7 @@ public class CouchbaseLimiter implements Limiter {
             });
             thread.start();
 
+            shortTermCounter = counter(eventKey, 0, 0);
             long shortTermRequestsLeft = getShortTermEventLogsLeftInInterval(eventLogbook, eventTimestamps, shortTermCounter, logTimestamp);
             System.out.println(("DEBUG shortTermRequetsLeft: " + shortTermRequestsLeft));
             if (shortTermRequestsLeft < 0) {
@@ -441,7 +450,18 @@ public class CouchbaseLimiter implements Limiter {
     {
         int timstampsSize = timestamps.size();
         System.out.println("DEBUG timstampsSize: " + timstampsSize);
-        return eventLogbook.limit-(timestamps.size() + unhandledLogs);
+        System.out.println("DEBUG unhandledLogs: " + unhandledLogs);
+        System.out.println("DEBUG limit: " + eventLogbook.limit);
+        int count = 0;
+        long treshold = timestamp-eventLogbook.milllisInterval;
+        for (EventLogTimestamp eventLogTimestamp : timestamps)
+        {
+            if (eventLogTimestamp.eventTimestamp>treshold) {
+                count++;
+            }
+
+        }
+        return eventLogbook.limit-(count + unhandledLogs);
     }
 
     /**
