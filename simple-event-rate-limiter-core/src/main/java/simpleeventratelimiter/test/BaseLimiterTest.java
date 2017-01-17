@@ -19,6 +19,7 @@ import junit.framework.TestCase;
 import simpleeventratelimiter.Limiter;
 import simpleeventratelimiter.exception.EventLimitException;
 
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -26,8 +27,9 @@ import java.util.concurrent.TimeUnit;
  */
 public abstract class BaseLimiterTest extends TestCase {
 
-    protected void testEventLimitException(Limiter limiter) throws Exception
+    protected void testEventLimitException(Limiter limiter, long delayForCleanup, int limit, int interval, TimeUnit intervalUnit) throws Exception
     {
+        final String EVENT_KEY = UUID.randomUUID().toString();
         for (int eventCnt = 1; eventCnt<=11;eventCnt++)
         {
             System.out.println("Event: " + eventCnt);
@@ -36,7 +38,7 @@ public abstract class BaseLimiterTest extends TestCase {
                 long startMillis = System.currentTimeMillis();
                 try
                 {
-                    limiter.logEvent("test event 1", 10, 15, TimeUnit.SECONDS);
+                    limiter.logEvent(EVENT_KEY, limit, interval, intervalUnit);
                     TestCase.fail("EventLimitException should be thrown");
                 }
                 catch (EventLimitException e)
@@ -48,12 +50,12 @@ public abstract class BaseLimiterTest extends TestCase {
             else
             {
                 long startMillis = System.currentTimeMillis();
-                limiter.logEvent("test event 1", 10, 15, TimeUnit.SECONDS);
+                limiter.logEvent(EVENT_KEY, limit, interval, intervalUnit);
                 System.out.println("Event logged in millis: "+ (System.currentTimeMillis()-startMillis));
             }
         }
         System.out.println("Waiting ...");
-        Thread.sleep(16000);
+        Thread.sleep(delayForCleanup);
         for (int eventCnt = 1; eventCnt<=11;eventCnt++)
         {
             System.out.println("Event: " + eventCnt);
@@ -62,7 +64,7 @@ public abstract class BaseLimiterTest extends TestCase {
                 long startMillis = System.currentTimeMillis();
                 try
                 {
-                    limiter.logEvent("test event 1", 10, 15, TimeUnit.SECONDS);
+                    limiter.logEvent(EVENT_KEY, limit, interval, intervalUnit);
                     TestCase.fail("EventLimitException should be thrown");
                 }
                 catch (EventLimitException e)
@@ -74,14 +76,15 @@ public abstract class BaseLimiterTest extends TestCase {
             else
             {
                 long startMillis = System.currentTimeMillis();
-                limiter.logEvent("test event 1", 10, 15, TimeUnit.SECONDS);
+                limiter.logEvent(EVENT_KEY, limit, interval, intervalUnit);
                 System.out.println("Event logged in millis: "+ (System.currentTimeMillis()-startMillis));
             }
         }
     }
 
-    protected void testEventLimitExceptionWithDelays(Limiter limiter) throws Exception
+    protected void testEventLimitExceptionWithDelays(Limiter limiter, long delayMillis, long delayForCleanup, int limit, int interval, TimeUnit intervalUnit) throws Exception
     {
+        final String EVENT_KEY = UUID.randomUUID().toString();
         for (int eventCnt = 1; eventCnt<=11;eventCnt++)
         {
             System.out.println("Event: " + eventCnt);
@@ -90,7 +93,7 @@ public abstract class BaseLimiterTest extends TestCase {
                 long startMillis = System.currentTimeMillis();
                 try
                 {
-                    limiter.logEvent("test event 2", 10, 15, TimeUnit.SECONDS);
+                    limiter.logEvent(EVENT_KEY, limit, interval, intervalUnit);
                     TestCase.fail("EventLimitException should be thrown");
                 }
                 catch (EventLimitException e)
@@ -102,12 +105,12 @@ public abstract class BaseLimiterTest extends TestCase {
             else
             {
                 long startMillis = System.currentTimeMillis();
-                limiter.logEvent("test event 2", 10, 15, TimeUnit.SECONDS);
+                limiter.logEvent(EVENT_KEY, limit, interval, intervalUnit);
                 System.out.println("Event logged in millis: "+ (System.currentTimeMillis()-startMillis));
             }
-            Thread.sleep(1000);
+            Thread.sleep(delayMillis);
         }
-        Thread.sleep(16000);
+        Thread.sleep(delayForCleanup);
         for (int eventCnt = 1; eventCnt<=11;eventCnt++)
         {
             System.out.println("Event: " + eventCnt);
@@ -116,7 +119,7 @@ public abstract class BaseLimiterTest extends TestCase {
                 long startMillis = System.currentTimeMillis();
                 try
                 {
-                    limiter.logEvent("test event 2", 10, 15, TimeUnit.SECONDS);
+                    limiter.logEvent(EVENT_KEY, limit, interval, intervalUnit);
                     TestCase.fail("EventLimitException should be thrown");
                 }
                 catch (EventLimitException e)
@@ -128,10 +131,10 @@ public abstract class BaseLimiterTest extends TestCase {
             else
             {
                 long startMillis = System.currentTimeMillis();
-                limiter.logEvent("test event 2", 10, 15, TimeUnit.SECONDS);
+                limiter.logEvent(EVENT_KEY, limit, interval, intervalUnit);
                 System.out.println("Event logged in millis: "+ (System.currentTimeMillis()-startMillis));
             }
-            Thread.sleep(1000);
+            Thread.sleep(delayMillis);
         }
     }
 }

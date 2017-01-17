@@ -7,11 +7,11 @@
     <groupId>simple-event-rate-limiter</groupId>
     <artifactId>simple-event-rate-limiter</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.1</version>
+    <version>1.0.2-SNAPSHOT</version>
 
     <modules>
         <module>simple-event-rate-limiter-core</module>
-        <module>simpl-event-rate-limiter-guava</module>
+        <module>simple-event-rate-limiter-couchbase</module>
     </modules>
 
     <developers>

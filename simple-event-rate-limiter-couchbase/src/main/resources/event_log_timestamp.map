@@ -1,0 +1,10 @@
+function(doc, meta)
+{
+    if (meta.t="json")
+    {
+        if (doc.type && doc.type == "EventLogTimestamp")
+        {
+            emit(doc.eventKey, doc);
+        }
+    }
+}

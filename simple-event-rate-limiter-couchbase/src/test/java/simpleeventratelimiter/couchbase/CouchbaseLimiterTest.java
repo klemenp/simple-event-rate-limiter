@@ -13,9 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package simpleeventratelimiter;
+package simpleeventratelimiter.couchbase;
 
 import org.junit.Test;
+import simpleeventratelimiter.Limiter;
 import simpleeventratelimiter.test.BaseLimiterTest;
 
 import java.util.concurrent.TimeUnit;
@@ -23,33 +24,41 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by klemen on 13.12.2016.
  */
-public class BasicLimiterTest extends BaseLimiterTest {
+public class CouchbaseLimiterTest extends BaseLimiterTest {
+
+    @Override
+    protected void setUp() throws Exception {
+        super.setUp();
+        CouchbaseClientManager couchbaseClientManager = CouchbaseClientManagerImpl.getInstance();
+        couchbaseClientManager.initializeCluster();
+    }
 
     @Test
     public void testEventLimitException() throws Exception
     {
-        Limiter limiter = BasicLimiter.getInstance();
+
+        CouchbaseLimiter limiter = CouchbaseLimiter.getInstance();
         super.testEventLimitException(limiter, 1000, 10, 1, TimeUnit.SECONDS);
     }
 
     @Test
     public void testEventLimitExceptionWithDelays() throws Exception
     {
-        Limiter limiter = BasicLimiter.getInstance();
+        Limiter limiter = CouchbaseLimiter.getInstance();
         super.testEventLimitExceptionWithDelays(limiter, 1000, 16000, 10, 15, TimeUnit.SECONDS);
     }
 
     @Test
     public void testEventLimitException2() throws Exception
     {
-        Limiter limiter = BasicLimiter.getInstance();
+        Limiter limiter = CouchbaseLimiter.getInstance();
         super.testEventLimitException(limiter, 16000, 10, 15, TimeUnit.SECONDS);
     }
 
     @Test
     public void testEventLimitExceptionWithDelays2() throws Exception
     {
-        Limiter limiter = BasicLimiter.getInstance();
+        Limiter limiter = CouchbaseLimiter.getInstance();
         super.testEventLimitExceptionWithDelays(limiter, 80, 1000, 10, 1, TimeUnit.SECONDS);
     }
 }

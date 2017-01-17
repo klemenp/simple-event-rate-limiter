@@ -67,18 +67,23 @@ public class BasicLimiter implements Limiter {
         {
             throw new NoEventRegisteredException("No event registered for event key " + eventKey);
         }
+        if (eventLogbook.getUnhandledLogs().longValue()>eventLogbook.limit)
+        {
+            log.warn("Shortterm overflow - skipping log of event.");
+            throw new EventLimitException("Limit reached for event key " + eventKey + ". Shortterm overflow - skipping log of event.");
+        }
         if (eventLogbook.getUnhandledLogs().incrementAndGet()==1)
         {
             eventLogbook.atLeastOnceHandled=false;
         }
 
         Thread thread = new Thread(()-> {
-            eventLogbook.eventTimestamps.add(logTimestamp);
             long oldestTimestamp = logTimestamp - eventLogbook.milllisInterval;
             // Clean up old logs and find new nextAllowedTimestamp;
 
             int count = 0;
             synchronized (eventLogbook.eventTimestamps) {
+                eventLogbook.eventTimestamps.add(logTimestamp);
                 Iterator<Long> logsIterator = eventLogbook.eventTimestamps.iterator();
                 while (logsIterator.hasNext()) {
                     long currentTimestamp = logsIterator.next();
@@ -255,6 +260,7 @@ public class BasicLimiter implements Limiter {
                 if (unhandled>0) {
                     if (atLeastOnceHandled) {
                         return eventTimestamps.size() + unhandled;
+
                     }
                     else
                     {
