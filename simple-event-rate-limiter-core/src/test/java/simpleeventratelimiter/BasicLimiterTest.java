@@ -24,7 +24,6 @@ import java.util.concurrent.TimeUnit;
  * Created by klemen on 13.12.2016.
  */
 public class BasicLimiterTest extends BaseLimiterTest {
-
     @Test
     public void testEventLimitException() throws Exception
     {
