@@ -118,7 +118,6 @@ public class BasicLimiter implements Limiter {
             throw new EventLimitException("Limit reached for event key " + eventKey + ". Short term counter at limit");
         }
 
-
         AtomicLong nextAllowedTimestamp = nextAllowedTimestamps.get(eventKey);
         if (nextAllowedTimestamp==null)
         {
