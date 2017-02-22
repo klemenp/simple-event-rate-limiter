@@ -137,7 +137,5 @@ public class BasicLimiterTest extends TestCase {
             }
             Thread.sleep(1000);
         }
-
-
     }
 }
